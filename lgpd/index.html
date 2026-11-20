@@ -1,0 +1,825 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Seus Dados, Suas Regras</title>
+<meta name="description" content="Site do folder sobre a LGPD: direitos do titular, ANPD e privacidade, com fase extra e quiz.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400&family=Pixelify+Sans:wght@400;600&family=Space+Grotesk:wght@500;700&display=swap">
+<style>
+/* Layout: um jogo em 3 fases. Tela inicial = seleção de mundos; cada mundo = palco fixo com o personagem (muda de humor conforme a leitura) + coluna de conteúdo. */
+:root {
+  color-scheme: dark;
+  --ground: #172030;
+  --surface: #1F2A3B;
+  --surface-2: #283548;
+  --ink: #F3F5F9;
+  --text: #CBD4E0;
+  --muted: #98A5B8;
+  --rule: rgba(203, 212, 224, 0.16);
+  --danger: #F87171;
+  --ok: #4ADE80;
+  --bubble: #F7F8FB;
+  --bubble-ink: #142033;
+  --accent: #FF9900;
+  --on-accent: #1A1204;
+  --bg-img: url("img/fundo_aws.svg");
+  --font-display: "Space Grotesk", "Segoe UI", system-ui, sans-serif;
+  --font-body: "Atkinson Hyperlegible", "Segoe UI", system-ui, sans-serif;
+  --font-pixel: "Pixelify Sans", ui-monospace, "Courier New", monospace;
+  --step: 6px;
+}
+:root[data-world="aws"] { --ground: #1B2533; --surface: #232F40; --surface-2: #2B394C; --accent: #FF9900; --on-accent: #1A1204; --bg-img: url("img/fundo_aws.svg"); }
+:root[data-world="codigo"] { --ground: #17142E; --surface: #211D3D; --surface-2: #2A2549; --accent: #B39DFB; --on-accent: #160F33; --bg-img: url("img/fundo_codigo.svg"); }
+:root[data-world="lgpd"] { --ground: #0D2A23; --surface: #13362D; --surface-2: #1A4237; --accent: #34D399; --on-accent: #052019; --bg-img: url("img/fundo_lgpd.svg"); }
+
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+@media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
+body {
+  margin: 0;
+  background: var(--ground);
+  color: var(--text);
+  font-family: var(--font-body);
+  font-size: 1.0625rem;
+  line-height: 1.6;
+  transition: background-color .4s ease;
+}
+body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-area-inset-top, 0px); z-index: 30; background: var(--ground); }
+.backdrop { position: fixed; inset: 0; z-index: 0; background-image: var(--bg-img); background-size: cover; background-position: center; opacity: .55; pointer-events: none; }
+.wrap { position: relative; z-index: 1; }
+.gutter { padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+.container { max-width: 1160px; margin-inline: auto; }
+
+a { color: var(--accent); text-underline-offset: 3px; }
+a:hover { color: var(--ink); }
+:focus-visible { outline: 3px solid var(--accent); outline-offset: 3px; }
+h1, h2, h3 { font-family: var(--font-display); color: var(--ink); text-wrap: balance; margin: 0; }
+p { margin: 0; text-wrap: pretty; }
+.pixel { font-family: var(--font-pixel); }
+[hidden] { display: none !important; }
+.sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border: 0; }
+
+/* Cabeçalho */
+.topbar { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 20; background: var(--ground); border-bottom: 1px solid var(--rule); transition: background-color .4s ease; }
+.topbar .container { display: flex; align-items: center; gap: 24px; min-height: 64px; }
+.brand { display: flex; align-items: center; gap: 10px; color: var(--ink); text-decoration: none; font-family: var(--font-pixel); font-size: 1.15rem; flex-shrink: 0; }
+.brand-mark { display: grid; grid-template-columns: repeat(3, 8px); gap: 3px; }
+.brand-mark span { width: 8px; height: 8px; }
+.brand-mark span:nth-child(1) { background: #FF9900; }
+.brand-mark span:nth-child(2) { background: #B39DFB; }
+.brand-mark span:nth-child(3) { background: #34D399; }
+.nav { display: flex; gap: 4px; margin-left: auto; overflow-x: auto; scrollbar-width: none; min-width: 0; }
+.nav::-webkit-scrollbar { display: none; }
+.nav a { font-family: var(--font-pixel); font-size: 1rem; color: var(--text); text-decoration: none; padding: 10px 12px; white-space: nowrap; border-bottom: 3px solid transparent; }
+.nav a:hover { color: var(--ink); }
+.nav a[aria-current="page"] { color: var(--ink); border-bottom-color: var(--accent); }
+
+/* Personagem e balão */
+.char { image-rendering: pixelated; display: block; width: auto; }
+.bubble {
+  position: relative;
+  background: var(--bubble);
+  color: var(--bubble-ink);
+  font-family: var(--font-pixel);
+  font-size: 1.05rem;
+  line-height: 1.35;
+  padding: 14px 16px;
+  clip-path: polygon(0 var(--step), var(--step) var(--step), var(--step) 0, calc(100% - var(--step)) 0, calc(100% - var(--step)) var(--step), 100% var(--step), 100% calc(100% - var(--step)), calc(100% - var(--step)) calc(100% - var(--step)), calc(100% - var(--step)) 100%, var(--step) 100%, var(--step) calc(100% - var(--step)), 0 calc(100% - var(--step)));
+}
+.bubble-tail { position: relative; height: 14px; }
+.bubble-tail::before, .bubble-tail::after { content: ""; position: absolute; background: var(--bubble); }
+.bubble-tail::before { left: 40%; top: 0; width: 12px; height: 8px; }
+.bubble-tail::after { left: calc(40% + 4px); top: 8px; width: 6px; height: 6px; }
+
+/* Botões */
+.btn {
+  display: inline-flex; align-items: center; gap: 10px;
+  font-family: var(--font-pixel); font-size: 1.05rem;
+  background: var(--accent); color: var(--on-accent);
+  border: 0; padding: 12px 18px; min-height: 48px; cursor: pointer; text-decoration: none;
+  box-shadow: 0 4px 0 0 rgba(0,0,0,.35);
+}
+.btn:hover { color: var(--on-accent); transform: translateY(1px); box-shadow: 0 3px 0 0 rgba(0,0,0,.35); }
+.btn:active { transform: translateY(4px); box-shadow: none; }
+.btn-ghost { background: transparent; color: var(--ink); box-shadow: inset 0 0 0 2px var(--rule); }
+.btn-ghost:hover { color: var(--ink); box-shadow: inset 0 0 0 2px var(--accent); transform: none; }
+
+/* ===== Tela inicial ===== */
+.home-hero .container { display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr); gap: 40px; align-items: end; padding-block: 64px 48px; }
+.home-title { font-size: clamp(2.6rem, 7vw, 5.4rem); line-height: .95; letter-spacing: -0.02em; }
+.home-title .num { font-family: var(--font-pixel); font-weight: 600; color: var(--ink); display: inline-block; padding: 0 .12em; margin-inline: .04em; background: linear-gradient(90deg, #FF9900 0 33.3%, #B39DFB 33.3% 66.6%, #34D399 66.6%); -webkit-background-clip: text; background-clip: text; color: transparent; }
+.home-lede { margin-top: 24px; max-width: 52ch; font-size: 1.2rem; color: var(--text); }
+.home-actions { margin-top: 32px; display: flex; flex-wrap: wrap; gap: 12px; }
+.home-stage { display: flex; align-items: flex-end; gap: 12px; justify-content: flex-end; }
+.home-stage .bubble-col { flex: 1; max-width: 240px; align-self: flex-start; margin-top: 24px; }
+.home-stage .char { height: 300px; }
+
+.worlds .container { padding-block: 24px 64px; }
+.worlds h2 { font-size: 1.6rem; }
+.worlds-intro { margin-top: 8px; color: var(--muted); max-width: 60ch; }
+.path { margin-top: 32px; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 28px; position: relative; }
+.path::before { content: ""; position: absolute; left: 8%; right: 8%; top: 27px; border-top: 4px dotted var(--rule); z-index: 0; }
+.world-card { position: relative; z-index: 1; display: flex; flex-direction: column; gap: 14px; text-decoration: none; color: var(--text); }
+.world-card .platform { display: flex; align-items: center; gap: 12px; }
+.world-card .node { width: 58px; height: 58px; display: grid; place-items: center; font-family: var(--font-pixel); font-size: 1.6rem; color: #10151D; flex-shrink: 0; }
+.world-card .kicker { font-family: var(--font-pixel); color: var(--muted); font-size: .98rem; background: var(--ground); padding: 0 10px 0 4px; }
+.world-card h3 { font-size: 1.55rem; line-height: 1.1; }
+.world-card .body { background: var(--surface); padding: 20px; display: flex; flex-direction: column; gap: 14px; flex: 1; border-top: 4px solid var(--c); }
+.world-card .hook { color: var(--ink); font-size: 1.05rem; }
+.world-card .topics { display: flex; flex-wrap: wrap; gap: 6px; padding: 0; margin: 0; list-style: none; }
+.world-card .topics li { font-size: .9rem; color: var(--muted); border: 1px solid var(--rule); padding: 2px 8px; }
+.world-card .go { margin-top: auto; font-family: var(--font-pixel); color: var(--c); font-size: 1.05rem; }
+.world-card:hover .body { background: var(--surface-2); }
+.world-card:hover .go { text-decoration: underline; text-underline-offset: 4px; }
+
+.how .container { padding-block: 8px 80px; }
+.how h2 { font-size: 1.6rem; }
+.how-steps { list-style: none; margin: 24px 0 0; padding: 0; display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 0; border: 1px solid var(--rule); }
+.how-steps li { padding: 18px 16px; display: flex; flex-direction: column; gap: 8px; border-right: 1px solid var(--rule); background: rgba(23,32,48,.6); }
+.how-steps li:last-child { border-right: 0; }
+.how-steps .n { font-family: var(--font-pixel); color: var(--muted); }
+.how-steps strong { font-family: var(--font-display); color: var(--ink); font-size: 1.05rem; }
+.how-steps span:last-child { font-size: .95rem; color: var(--muted); line-height: 1.45; }
+
+/* ===== Mundo ===== */
+.world .container { display: grid; grid-template-columns: 300px minmax(0, 1fr); gap: 56px; padding-block: 40px 96px; }
+.stage { position: sticky; top: calc(env(safe-area-inset-top, 0px) + 88px); align-self: start; display: flex; flex-direction: column; gap: 18px; }
+.stage-world { font-family: var(--font-pixel); color: var(--accent); font-size: 1.05rem; }
+.stage-figure { display: flex; flex-direction: column; align-items: center; }
+.stage-figure .bubble { width: 100%; min-height: 76px; }
+.stage-figure .char { height: 250px; margin-top: 6px; }
+.stage-figure .char.hop { animation: hop .45s steps(3) 1; }
+@keyframes hop { 0% { transform: translateY(0); } 40% { transform: translateY(-14px); } 100% { transform: translateY(0); } }
+@media (prefers-reduced-motion: reduce) { .stage-figure .char.hop { animation: none; } }
+.ground-line { width: 100%; height: 6px; background: repeating-linear-gradient(90deg, var(--accent) 0 12px, transparent 12px 18px); opacity: .7; }
+.progress { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 2px; }
+.progress a { display: flex; align-items: center; gap: 10px; padding: 7px 10px; text-decoration: none; color: var(--muted); font-size: .98rem; }
+.progress a:hover { color: var(--ink); background: var(--surface); }
+.progress .dot { width: 12px; height: 12px; border: 2px solid currentColor; flex-shrink: 0; }
+.progress a.done { color: var(--text); }
+.progress a.done .dot { background: currentColor; }
+.progress a.current { color: var(--ink); background: var(--surface); }
+.progress a.current .dot { background: var(--accent); border-color: var(--accent); }
+
+.content { min-width: 0; max-width: 700px; display: flex; flex-direction: column; gap: 88px; }
+.phase { display: flex; flex-direction: column; gap: 22px; scroll-margin-top: 96px; }
+.phase-label { font-family: var(--font-pixel); color: var(--accent); font-size: 1.05rem; }
+.phase h2 { font-size: clamp(1.75rem, 3.2vw, 2.4rem); line-height: 1.1; }
+.world-title { font-size: clamp(2.6rem, 6.5vw, 4.6rem); line-height: .98; letter-spacing: -0.02em; }
+.hook-text { font-size: 1.3rem; line-height: 1.55; color: var(--ink); max-width: 36ch; }
+.lead { font-size: 1.15rem; }
+.question { font-family: var(--font-display); font-weight: 700; font-size: clamp(1.4rem, 2.6vw, 1.85rem); line-height: 1.2; color: var(--accent); max-width: 26ch; }
+.question-wrap { display: flex; flex-direction: column; gap: 6px; padding-top: 8px; }
+.question-wrap .small { color: var(--muted); font-size: .95rem; }
+
+.panel { background: var(--surface); padding: 20px 22px; display: flex; flex-direction: column; gap: 14px; }
+.panel-head { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; font-family: var(--font-pixel); font-size: 1rem; color: var(--text); }
+.hp { display: grid; grid-template-columns: repeat(10, minmax(0, 1fr)); gap: 5px; }
+.hp i { height: 18px; border: 2px solid rgba(203,212,224,.35); }
+.hp i.on { background: var(--danger); border-color: var(--danger); }
+.danger { color: var(--danger); }
+.caption { font-size: .95rem; color: var(--muted); }
+
+.servers { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; align-items: end; }
+.servers .col { display: flex; flex-direction: column; align-items: center; gap: 10px; }
+.servers .stack { display: flex; flex-direction: column-reverse; gap: 4px; }
+.servers .stack i { width: 34px; height: 12px; background: var(--accent); }
+.servers .lbl { font-family: var(--font-pixel); font-size: .95rem; color: var(--muted); text-align: center; }
+
+.bullets { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 12px; }
+.bullets li { display: grid; grid-template-columns: 12px minmax(0, 1fr); gap: 14px; align-items: baseline; }
+.bullets li::before { content: ""; width: 11px; height: 11px; background: var(--accent); transform: translateY(1px); }
+.checks li::before { content: none; }
+.checks li { grid-template-columns: 22px minmax(0, 1fr); }
+.checks svg { transform: translateY(3px); }
+
+.split { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+.split > div { background: var(--surface); padding: 18px; display: flex; flex-direction: column; gap: 6px; }
+.split .who { font-family: var(--font-pixel); color: var(--accent); font-size: 1.1rem; }
+.split .what { color: var(--ink); }
+.split .ex { color: var(--muted); font-size: .95rem; }
+
+.layers { display: flex; flex-direction: column; gap: 6px; }
+.layers div { border: 2px solid var(--accent); padding: 10px 14px; display: flex; justify-content: space-between; gap: 12px; color: var(--ink); }
+.layers div span:last-child { color: var(--muted); font-size: .95rem; text-align: right; }
+
+.alert { border: 2px solid #FBBF24; padding: 16px 18px; display: flex; flex-direction: column; gap: 6px; }
+.alert .t { font-family: var(--font-pixel); color: #FBBF24; }
+
+.seals { display: flex; flex-wrap: wrap; gap: 10px; }
+.seals span { display: inline-flex; align-items: center; gap: 8px; border: 2px solid var(--accent); padding: 8px 12px; font-family: var(--font-pixel); color: var(--ink); }
+
+.inline-figure { display: none; }
+
+/* Fase extra */
+.extra-list { display: flex; flex-direction: column; gap: 0; border-top: 1px solid var(--rule); }
+.extra-item { padding-block: 28px; border-bottom: 1px solid var(--rule); display: flex; flex-direction: column; gap: 14px; }
+.extra-item h3 { font-size: 1.35rem; line-height: 1.2; }
+.extra-item p + p { margin-top: 0; }
+.steps { list-style: none; margin: 0; padding: 0; counter-reset: s; display: flex; flex-direction: column; gap: 12px; }
+.steps li { counter-increment: s; display: grid; grid-template-columns: 36px minmax(0, 1fr); gap: 12px; align-items: baseline; }
+.steps li::before { content: counter(s); font-family: var(--font-pixel); color: var(--on-accent); background: var(--accent); width: 28px; height: 28px; display: grid; place-items: center; font-size: 1rem; }
+.timeline { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
+.timeline li { display: grid; grid-template-columns: 96px minmax(0, 1fr); gap: 16px; padding: 12px 0; border-top: 1px dashed var(--rule); }
+.timeline li:first-child { border-top: 0; }
+.timeline .when { font-family: var(--font-pixel); color: var(--accent); }
+.table-scroll { overflow-x: auto; }
+table { border-collapse: collapse; width: 100%; min-width: 460px; font-size: 1rem; }
+th, td { text-align: left; padding: 10px 12px; border-bottom: 1px solid var(--rule); vertical-align: top; }
+th { font-family: var(--font-pixel); font-weight: 400; color: var(--accent); }
+td:first-child { color: var(--ink); white-space: nowrap; }
+.code-scroll { overflow-x: auto; background: #0E131C; border: 1px solid var(--rule); }
+.code-scroll .bar { display: flex; gap: 6px; padding: 10px 12px; border-bottom: 1px solid var(--rule); align-items: center; }
+.code-scroll .bar i { width: 10px; height: 10px; background: var(--rule); }
+.code-scroll .bar span { margin-left: 8px; font-family: var(--font-pixel); font-size: .9rem; color: var(--muted); }
+pre { margin: 0; padding: 16px; font-family: ui-monospace, "JetBrains Mono", "Cascadia Code", Consolas, monospace; font-size: .9rem; line-height: 1.55; color: #DCE3EE; }
+pre .c { color: #8C99AD; }
+.solid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 200px), 1fr)); gap: 10px; }
+.solid div { background: var(--surface); padding: 14px 16px; display: flex; flex-direction: column; gap: 4px; }
+.solid b { font-family: var(--font-pixel); font-weight: 400; color: var(--accent); font-size: 1.6rem; line-height: 1; }
+.solid strong { color: var(--ink); font-family: var(--font-display); }
+.solid span { font-size: .95rem; }
+.glossary { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0 28px; margin: 0; }
+.glossary div { padding: 12px 0; border-bottom: 1px solid var(--rule); }
+.glossary dt { font-family: var(--font-display); font-weight: 700; color: var(--ink); }
+.glossary dd { margin: 2px 0 0; font-size: .98rem; }
+.note { font-size: .95rem; color: var(--muted); }
+
+/* Desafio */
+.quiz { display: flex; flex-direction: column; gap: 18px; }
+.q { background: var(--surface); padding: 20px 22px; display: flex; flex-direction: column; gap: 14px; border: 0; margin: 0; min-width: 0; }
+.q legend { float: left; width: 100%; padding: 0; color: var(--ink); font-family: var(--font-display); font-weight: 700; font-size: 1.15rem; line-height: 1.3; }
+.q legend .qn { display: block; font-family: var(--font-pixel); font-weight: 400; color: var(--accent); font-size: 1rem; margin-bottom: 4px; }
+.q .opts { clear: both; display: flex; flex-direction: column; gap: 8px; }
+.opt { text-align: left; font: inherit; color: var(--text); background: var(--surface-2); border: 2px solid transparent; padding: 12px 14px; min-height: 48px; cursor: pointer; display: flex; justify-content: space-between; gap: 12px; align-items: center; }
+.opt:hover:not(:disabled) { border-color: var(--accent); color: var(--ink); }
+.opt:disabled { cursor: default; }
+.opt.right { border-color: var(--ok); color: var(--ink); }
+.opt.wrong { border-color: var(--danger); }
+.opt .mark { font-family: var(--font-pixel); font-size: .95rem; flex-shrink: 0; }
+.opt.right .mark { color: var(--ok); }
+.opt.wrong .mark { color: var(--danger); }
+.feedback { font-size: 1rem; }
+.feedback strong { color: var(--ink); }
+.result { display: flex; flex-direction: column; gap: 12px; align-items: flex-start; border: 2px solid var(--accent); padding: 20px 22px; }
+.result .score { font-family: var(--font-pixel); font-size: 1.6rem; color: var(--ink); }
+
+.sources { margin: 0; padding-left: 1.3em; display: flex; flex-direction: column; gap: 8px; font-size: .98rem; }
+.next { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; justify-content: space-between; border-top: 1px solid var(--rule); padding-top: 28px; }
+.next .label { color: var(--muted); }
+
+/* Sobre */
+.about .container { padding-block: 56px 96px; display: grid; grid-template-columns: minmax(0, 1fr) 300px; gap: 56px; }
+.about-main { display: flex; flex-direction: column; gap: 40px; max-width: 700px; min-width: 0; }
+.about h1 { font-size: clamp(2.2rem, 5vw, 3.6rem); line-height: 1; letter-spacing: -0.015em; }
+.about h2 { font-size: 1.5rem; }
+.about section { display: flex; flex-direction: column; gap: 14px; }
+.facts { display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: 0; margin: 0; }
+.facts dt, .facts dd { padding: 10px 0; border-bottom: 1px solid var(--rule); margin: 0; }
+.facts dt { font-family: var(--font-pixel); color: var(--muted); padding-right: 24px; }
+.facts dd { color: var(--ink); }
+.about-side { display: flex; flex-direction: column; align-items: center; gap: 0; position: sticky; top: calc(env(safe-area-inset-top, 0px) + 96px); align-self: start; }
+.about-side .char { height: 240px; }
+
+.foot { border-top: 1px solid var(--rule); }
+.foot .container { padding-block: 24px 32px; display: flex; flex-wrap: wrap; justify-content: space-between; gap: 12px; font-size: .95rem; color: var(--muted); }
+
+/* Responsivo */
+@media (max-width: 960px) {
+  .world .container { grid-template-columns: minmax(0, 1fr); gap: 0; padding-block: 24px 72px; }
+  .stage { display: none; }
+  .inline-figure { display: flex; align-items: flex-end; gap: 12px; }
+  .inline-figure .char { height: 170px; flex-shrink: 0; }
+  .inline-figure .bubble-wrap { flex: 1; align-self: flex-start; display: flex; flex-direction: column; }
+  .inline-figure .bubble-tail::before { left: auto; right: 0; top: 18px; width: 0; height: 0; }
+  .content { gap: 64px; }
+  .how-steps { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .how-steps li:nth-child(3) { border-right: 0; }
+  .how-steps li:nth-child(-n+3) { border-bottom: 1px solid var(--rule); }
+  .about .container { grid-template-columns: minmax(0, 1fr); }
+  .about-side { display: none; }
+}
+@media (max-width: 760px) {
+  .home-hero .container { grid-template-columns: minmax(0, 1fr); padding-block: 40px 24px; gap: 24px; }
+  .home-stage { justify-content: flex-start; }
+  .home-stage .char { height: 200px; }
+  .path { grid-template-columns: minmax(0, 1fr); gap: 20px; }
+  .path::before { left: 27px; right: auto; top: 20px; bottom: 20px; border-top: 0; border-left: 4px dotted var(--rule); }
+  .glossary { grid-template-columns: minmax(0, 1fr); }
+  .split { grid-template-columns: minmax(0, 1fr); }
+}
+@media (max-width: 520px) {
+  .how-steps { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .how-steps li { border-right: 1px solid var(--rule) !important; border-bottom: 1px solid var(--rule) !important; }
+  .how-steps li:nth-child(2n) { border-right: 0 !important; }
+  .how-steps li:nth-last-child(-n+2) { border-bottom: 0 !important; }
+  .timeline li { grid-template-columns: minmax(0, 1fr); gap: 2px; }
+  .brand-text { display: none; }
+  .nav a { padding: 10px 6px; font-size: .92rem; }
+  .topbar .container { gap: 12px; }
+}
+</style>
+
+<style>img{max-width:100%}</style>
+</head>
+<body>
+<div class="backdrop" aria-hidden="true"></div>
+<div class="wrap">
+  <header class="topbar gutter">
+    <div class="container">
+      <a class="brand" href="#abertura" aria-label="Seus dados, suas regras, início">
+        <span class="brand-mark" aria-hidden="true"><span></span><span></span><span></span></span>
+        <span class="brand-text">Seus dados, suas regras</span>
+      </a>
+      <nav class="nav" aria-label="Seções">
+        <a href="#abertura" data-route="folder">O folder</a>
+        <a href="#extra" data-route="extra">Fase extra</a>
+        <a href="#desafio" data-route="desafio">Desafio</a>
+        <a href="#sobre" data-route="sobre">Sobre o projeto</a>
+      </nav>
+    </div>
+  </header>
+
+  <!-- ===== MUNDO (preenchido por script) ===== -->
+  <main id="view-world" data-view="world"></main>
+
+  <!-- ===== SOBRE ===== -->
+  <main id="view-sobre" data-view="sobre" hidden>
+    <div class="about gutter">
+      <div class="container">
+        <div class="about-main">
+          <section>
+            <p class="phase-label">Projeto de extensão</p>
+            <h1>Sobre o projeto</h1>
+            <p class="lead">Este site complementa o folder sobre a LGPD e os direitos de cada pessoa sobre os próprios dados, um dos três folders educativos produzidos como atividade de extensão. O objetivo é explicar temas de tecnologia para quem não é da área, com linguagem simples, exemplos do dia a dia e informação confiável.</p>
+          </section>
+
+          <section aria-labelledby="ficha-h">
+            <h2 id="ficha-h">Ficha do projeto</h2>
+            <dl class="facts">
+              <dt>Autor</dt><dd>[Seu nome]</dd>
+              <dt>Curso</dt><dd>[Curso]</dd>
+              <dt>Instituição</dt><dd>[Faculdade]</dd>
+              <dt>Orientação</dt><dd>[Professor(a) orientador(a)]</dd>
+              <dt>Período</dt><dd>[Semestre/ano]</dd>
+              <dt>Público</dt><dd>Comunidade em geral e estudantes iniciantes em tecnologia</dd>
+              <dt>Produtos</dt><dd>3 folders impressos (tri-fold A4) e este site</dd>
+            </dl>
+          </section>
+
+          <section aria-labelledby="obj-h">
+            <h2 id="obj-h">Objetivos</h2>
+            <ul class="bullets">
+              <li><span>Mostrar como a computação em nuvem ajuda empresas de qualquer tamanho a ter sistemas seguros, que crescem com a demanda e custam conforme o uso.</span></li>
+              <li><span>Apresentar boas práticas de programação que permitem a um sistema crescer sem se tornar lento ou difícil de manter.</span></li>
+              <li><span>Informar a população sobre a LGPD, os direitos de cada pessoa sobre os próprios dados e como exercê-los.</span></li>
+            </ul>
+          </section>
+
+          <section aria-labelledby="met-h">
+            <h2 id="met-h">Como foi feito</h2>
+            <ol class="steps">
+              <li><span>Escolha de três temas ligados ao curso e à formação em AWS, com foco no que afeta o dia a dia das pessoas e dos negócios.</span></li>
+              <li><span>Roteiro em três fases (problema, solução e conclusão), conduzido por um personagem em pixel art que reage ao que aprende.</span></li>
+              <li><span>Produção dos folders impressos em formato tri-fold, com linguagem simples e analogias.</span></li>
+              <li><span>Criação deste site, com o conteúdo dos folders, uma fase extra para aprofundar, um glossário e um desafio de perguntas em cada tema.</span></li>
+              <li><span>Checagem das informações em fontes oficiais: o texto da lei, o site da ANPD e a documentação da AWS.</span></li>
+            </ol>
+          </section>
+
+          <section aria-labelledby="ref-h">
+            <h2 id="ref-h">Referências gerais</h2>
+            <ol class="sources">
+              <li><a href="https://www.planalto.gov.br/ccivil_03/_ato2015-2018/2018/lei/l13709.htm" target="_blank" rel="noopener">Lei nº 13.709/2018 (LGPD)</a>, Planalto.</li>
+              <li><a href="https://www.gov.br/anpd/pt-br" target="_blank" rel="noopener">Agência Nacional de Proteção de Dados (ANPD)</a>, gov.br.</li>
+              <li><a href="https://aws.amazon.com/about-aws/global-infrastructure/" target="_blank" rel="noopener">AWS Global Infrastructure</a>, Amazon Web Services.</li>
+              <li><a href="https://aws.amazon.com/compliance/shared-responsibility-model/" target="_blank" rel="noopener">Modelo de Responsabilidade Compartilhada</a>, Amazon Web Services.</li>
+              <li><a href="https://aws.amazon.com/architecture/well-architected/" target="_blank" rel="noopener">AWS Well-Architected Framework</a>, Amazon Web Services.</li>
+              <li><a href="https://12factor.net/pt_br/" target="_blank" rel="noopener">The Twelve-Factor App</a>, Adam Wiggins.</li>
+              <li>MARTIN, Robert C. <i>Arquitetura Limpa</i>. Rio de Janeiro: Alta Books, 2019.</li>
+              <li>FOWLER, Martin. <i>Refatoração</i>. 2. ed. São Paulo: Novatec, 2020.</li>
+            </ol>
+            <p class="note">Informações sobre valores, leis e serviços conferidas em novembro de 2026. AWS é marca da Amazon.com, Inc. Este projeto não tem vínculo com a Amazon.</p>
+          </section>
+        </div>
+        <aside class="about-side" aria-hidden="true">
+          <div class="bubble">Obrigado por jogar este tema!</div>
+          <div class="bubble-tail" style="width:100%"></div>
+          <img class="char" src="img/char_muito_feliz.png" alt="">
+        </aside>
+      </div>
+    </div>
+  </main>
+
+  <footer class="foot gutter">
+    <div class="container">
+      <span>Projeto de extensão de [Seu nome], [Curso], [Faculdade]</span>
+      <span>Conteúdo revisado em novembro de 2026</span>
+    </div>
+  </footer>
+</div>
+
+<script>
+(function () {
+  var SITE = "lgpd";
+  var LINKS = {"aws": "https://folder-nuvem.onrender.com", "codigo": "https://folder-codigo.onrender.com", "lgpd": "https://folder-lgpd.onrender.com"};
+  var IMG = { triste: "img/char_triste.png", feliz: "img/char_feliz.png", muito: "img/char_muito_feliz.png" };
+  var ALT = { triste: "Personagem triste", feliz: "Personagem feliz", muito: "Personagem muito feliz" };
+  var CHECK = '<svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><polyline points="2.5,8.5 6.5,12.5 13.5,4" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="square"/></svg>';
+
+  function hp(filled) { var s = ""; for (var i = 0; i < 10; i++) s += '<i class="' + (i < filled ? "on" : "") + '"></i>'; return '<div class="hp" aria-hidden="true">' + s + "</div>"; }
+  function blocks(n) { var s = ""; for (var i = 0; i < n; i++) s += "<i></i>"; return s; }
+  function bullets(items) { return '<ul class="bullets">' + items.map(function (t) { return "<li><span>" + t + "</span></li>"; }).join("") + "</ul>"; }
+  function checks(items) { return '<ul class="bullets checks">' + items.map(function (t) { return '<li><span style="color:var(--accent)">' + CHECK + "</span><span>" + t + "</span></li>"; }).join("") + "</ul>"; }
+
+  var WORLDS = {
+    aws: {
+      name: "Nuvem e AWS", short: "Nuvem", next: "codigo",
+      title: "Por que a nuvem?",
+      hook: "Imagine que você é o CEO de uma loja virtual. Na Black Friday, o site recebe 10 vezes mais acessos que o normal... e cai. Clientes desistem e as vendas somem.",
+      say: {
+        abertura: "Meu site caiu na Black Friday... perdi todas as vendas!",
+        problema: "Comprar mais servidores? Mas eles ficam parados o resto do ano...",
+        solucao: "Então a nuvem cresce sozinha quando precisa? Gostei!",
+        conclusao: "Agora minha loja aguenta qualquer pico. Valeu pela ajuda!",
+        extra: "Separei mais coisas que não couberam no folder.",
+        desafio: "Topa 3 perguntas rápidas?"
+      },
+      problem: {
+        text: "Manter servidores próprios custa caro, exige manutenção e não acompanha picos de acesso. Se o movimento sobe, o sistema cai. Se desce, a máquina cara fica parada.",
+        widget: '<div class="panel"><div class="panel-head"><span>Status do site</span><span class="danger">Fora do ar</span></div>' + hp(1) + '<p class="caption">Black Friday: 10 vezes mais acessos que o normal</p></div>',
+        question: "Como ter tecnologia de ponta sem gastar como uma gigante?"
+      },
+      solA: {
+        title: "Cresce quando precisa",
+        body: "<p>Na nuvem (AWS), servidores ligam sozinhos nos picos e desligam quando o movimento cai. Você paga só pelo que usa, como a conta de luz, e não precisa comprar equipamento.</p>" +
+          '<div class="panel"><div class="panel-head"><span>Servidores ligados</span></div><div class="servers">' +
+          '<div class="col"><div class="stack">' + blocks(1) + '</div><span class="lbl">Madrugada</span></div>' +
+          '<div class="col"><div class="stack">' + blocks(3) + '</div><span class="lbl">Dia normal</span></div>' +
+          '<div class="col"><div class="stack">' + blocks(8) + '</div><span class="lbl">Black Friday</span></div>' +
+          '</div><p class="caption">Exemplo ilustrativo. O recurso que faz isso na AWS se chama Auto Scaling.</p></div>'
+      },
+      solB: {
+        title: "Segura por padrão",
+        body: bullets(["Data centers vigiados 24 horas, com acesso restrito", "Dados criptografados (embaralhados para ninguém ler sem permissão)", "Cópias em locais diferentes: se um falhar, outro assume"]) +
+          '<div class="split"><div><span class="who">AWS</span><span class="what">protege a estrutura</span><span class="ex">prédios, energia, máquinas e rede</span></div><div><span class="who">Você</span><span class="what">protege suas senhas</span><span class="ex">acessos, dados e configurações</span></div></div>' +
+          '<p class="caption">Na nuvem, a segurança é dividida, como num prédio com portaria onde você ainda tranca a sua porta.</p>'
+      },
+      conclusion: { text: "A nuvem coloca tecnologia de grande empresa ao alcance de qualquer negócio: segura, flexível e paga conforme o uso.", seals: ["Segurança", "Escalabilidade", "Economia"] },
+      extra: [
+        { t: "Onde a nuvem mora", b: "<p>A nuvem não fica no céu. São data centers espalhados pelo mundo. Segundo a AWS, hoje são 39 regiões e 124 zonas de disponibilidade em funcionamento, e uma das regiões fica no Brasil, em São Paulo.</p>" +
+          bullets(["<strong>Região:</strong> uma área geográfica com vários data centers.", "<strong>Zona de disponibilidade:</strong> um grupo de data centers dentro da região, com energia e rede próprias. Se uma zona tem problema, a outra continua funcionando.", "<strong>Dica:</strong> escolha a região mais perto dos seus usuários. Dados perto deles = site mais rápido."]) },
+        { t: "Crescer para cima ou para os lados", b: "<p>Existem dois jeitos de aguentar mais acessos. Pense na fila de um supermercado:</p>" +
+          '<div class="split"><div><span class="who">Vertical</span><span class="what">Trocar o caixa por um mais rápido</span><span class="ex">Uma máquina maior. Tem limite e, se ela cair, tudo para.</span></div><div><span class="who">Horizontal</span><span class="what">Abrir mais caixas</span><span class="ex">Várias máquinas iguais dividindo o trabalho. É o que a nuvem faz automaticamente.</span></div></div>' },
+        { t: "Três jeitos de usar a nuvem", b: "<p>Os serviços de nuvem costumam ser divididos em três modelos. A diferença está em quanto trabalho fica com você:</p>" +
+          '<div class="table-scroll"><table><thead><tr><th>Modelo</th><th>Analogia</th><th>Exemplo</th></tr></thead><tbody>' +
+          "<tr><td>IaaS</td><td>Alugar um terreno e construir a casa do seu jeito</td><td>Amazon EC2 (servidor virtual)</td></tr>" +
+          "<tr><td>PaaS</td><td>Alugar um apartamento mobiliado</td><td>AWS Elastic Beanstalk</td></tr>" +
+          "<tr><td>SaaS</td><td>Ficar num hotel: só chegar e usar</td><td>E-mail, armazenamento de fotos, streaming</td></tr>" +
+          "</tbody></table></div>" },
+        { t: "Como começar sem gastar", b: "<p>Desde julho de 2025, quem cria uma conta nova na AWS ganha US$ 100 em créditos e pode ganhar mais US$ 100 explorando serviços, até US$ 200. O plano gratuito dura até 6 meses ou até os créditos acabarem.</p>" +
+          '<ol class="steps"><li><span>Ative a verificação em duas etapas (MFA) na conta principal logo no primeiro acesso.</span></li><li><span>Crie um alerta de orçamento no AWS Budgets para ser avisado antes de qualquer cobrança.</span></li><li><span>Estude de graça no AWS Skill Builder, a plataforma de cursos da própria AWS.</span></li></ol>' }
+      ],
+      glossary: [["EC2", "Servidor virtual que você liga e desliga quando quiser."], ["S3", "Armazenamento de arquivos na nuvem, como um HD sem limite."], ["Auto Scaling", "Recurso que liga e desliga servidores conforme o movimento."], ["Lambda", "Roda pedaços de código sem você cuidar de servidor."], ["IAM", "Controle de quem pode acessar o quê na sua conta."], ["MFA", "Verificação em duas etapas: senha mais um código."]],
+      quiz: [
+        { q: "Na Black Friday, os acessos explodem. O que a nuvem faz?", o: ["Bloqueia novos clientes até o movimento cair", "Liga mais servidores automaticamente", "Obriga a empresa a comprar um servidor maior"], c: 1, e: "Com o Auto Scaling, servidores extras ligam no pico e desligam depois. Você paga só pelo tempo de uso." },
+        { q: "No modelo de responsabilidade compartilhada, quem cuida das suas senhas?", o: ["A AWS", "Você", "Ninguém, a nuvem é segura sozinha"], c: 1, e: "A AWS protege a estrutura física. Senhas, acessos e configurações são responsabilidade de quem usa." },
+        { q: "Por que existem várias zonas de disponibilidade?", o: ["Para que, se uma falhar, outra assuma", "Para cobrar mais caro", "Para guardar só fotos e vídeos"], c: 0, e: "Cada zona tem energia e rede próprias. Distribuir o sistema entre elas evita que uma falha derrube tudo." }
+      ],
+      sources: [
+        ["AWS Global Infrastructure", "https://aws.amazon.com/about-aws/global-infrastructure/"],
+        ["AWS Free Tier: US$ 200 em créditos e plano gratuito de 6 meses (jul. 2025)", "https://aws.amazon.com/about-aws/whats-new/2025/07/aws-free-tier-credits-month-free-plan"],
+        ["Modelo de Responsabilidade Compartilhada", "https://aws.amazon.com/compliance/shared-responsibility-model/"],
+        ["AWS Skill Builder", "https://skillbuilder.aws/"]
+      ]
+    },
+
+    codigo: {
+      name: "Engenharia de software", short: "Código", next: "lgpd",
+      title: "Código que cresce sem quebrar",
+      hook: "Imagine que você está desenvolvendo um software que milhões de pessoas vão usar. No começo tudo funciona. Meses depois, o sistema fica lento e cada mudança quebra outra parte.",
+      say: {
+        abertura: "Toda vez que mexo numa parte, quebra outra...",
+        problema: "Comprei um servidor mais forte e continuou lento!",
+        solucao: "Classes padronizadas e camadas separadas... faz sentido!",
+        conclusao: "Meu sistema agora cresce sem quebrar. Obrigado!",
+        extra: "Tem exemplo de código lá embaixo!",
+        desafio: "Vamos ver se ficou claro?"
+      },
+      problem: {
+        text: "Escalabilidade é atender mais usuários sem perder desempenho. Sistemas que nascem sem padrão ficam lentos, cheios de erros e caros de manter quando crescem.",
+        widget: '<div class="panel"><div class="panel-head"><span>Status do sistema</span><span class="danger">Instável</span></div>' + hp(2) + '<p class="caption">Cada nova função quebra duas antigas</p></div>',
+        question: "Como escrever hoje um código que aguente o crescimento de amanhã?"
+      },
+      solA: {
+        title: "Organize",
+        body: bullets(["<strong>Padronize as classes:</strong> nomes claros e a mesma estrutura em todo o projeto (UsuarioService, UsuarioRepository).", "<strong>Uma classe, uma função:</strong> como numa cozinha, onde cada um tem seu posto.", "<strong>Separe em camadas:</strong> tela, regras e banco de dados. Mudou o banco? Só uma camada é alterada.", "<strong>Não repita código:</strong> lógica repetida é erro repetido."]) +
+          '<div class="layers" aria-label="Camadas de um sistema"><div><span>Tela</span><span>o que o usuário vê</span></div><div><span>Regras</span><span>o que o sistema decide</span></div><div><span>Banco de dados</span><span>onde as informações ficam</span></div></div>'
+      },
+      solB: {
+        title: "Acelere",
+        body: bullets(["<strong>Cache:</strong> guarde respostas pedidas toda hora, como deixar o café pronto na garrafa em vez de passar um novo a cada xícara.", "<strong>Servidor sem memória (stateless):</strong> o servidor não guarda dados do usuário consigo. Assim, dá para ligar vários servidores iguais lado a lado.", "<strong>Filas:</strong> tarefas pesadas, como enviar e-mails ou gerar relatórios, rodam depois. O usuário não fica esperando."])
+      },
+      conclusion: { text: "Código organizado é fácil de manter, testar e crescer. Pequenas boas práticas hoje evitam grandes problemas amanhã.", seals: ["Organizado", "Rápido", "Escalável"] },
+      extra: [
+        { t: "Antes e depois", b: "<p>O mesmo cadastro de usuário escrito de dois jeitos. No primeiro, uma única classe valida, grava no banco e envia o e-mail. Qualquer mudança mexe em tudo.</p>" +
+          '<div class="code-scroll"><div class="bar"><i></i><i></i><i></i><span>Antes</span></div><pre><code>class UsuarioController {\n  void cadastrar(String nome, String email) {\n    if (!email.contains("@")) throw new IllegalArgumentException("E-mail inválido");\n    db.execute("INSERT INTO usuarios ...");\n    smtp.enviar(email, "Bem-vindo!");   <span class="c">// usuário espera o e-mail sair</span>\n  }\n}</code></pre></div>' +
+          "<p>No segundo, cada classe tem um papel, e o e-mail vai para uma fila.</p>" +
+          '<div class="code-scroll"><div class="bar"><i></i><i></i><i></i><span>Depois</span></div><pre><code>class UsuarioController {                    <span class="c">// camada da tela</span>\n  private final UsuarioService service;\n  void cadastrar(UsuarioDTO dados) { service.cadastrar(dados); }\n}\n\nclass UsuarioService {                       <span class="c">// camada de regras</span>\n  private final UsuarioRepository repository;\n  private final FilaDeEmails fila;\n\n  void cadastrar(UsuarioDTO dados) {\n    Usuario usuario = Usuario.criar(dados);      <span class="c">// valida</span>\n    repository.salvar(usuario);                  <span class="c">// grava no banco</span>\n    fila.publicar(new EmailBoasVindas(usuario)); <span class="c">// roda depois</span>\n  }\n}</code></pre></div>' },
+        { t: "SOLID em palavras simples", b: "<p>SOLID reúne cinco princípios de design de classes, popularizados por Robert C. Martin. Cada letra é uma ideia:</p>" +
+          '<div class="solid">' +
+          "<div><b>S</b><strong>Responsabilidade única</strong><span>Cada classe tem um só motivo para mudar.</span></div>" +
+          "<div><b>O</b><strong>Aberto e fechado</strong><span>Dá para acrescentar comportamento sem mexer no que já funciona.</span></div>" +
+          "<div><b>L</b><strong>Substituição de Liskov</strong><span>Uma classe filha funciona no lugar da classe mãe sem surpresas.</span></div>" +
+          "<div><b>I</b><strong>Segregação de interfaces</strong><span>Várias interfaces pequenas são melhores que uma gigante.</span></div>" +
+          "<div><b>D</b><strong>Inversão de dependência</strong><span>Dependa de abstrações (interfaces), não de classes concretas.</span></div>" +
+          "</div>" },
+        { t: "Crescer para cima ou para os lados", b: "<p>Escalar <strong>verticalmente</strong> é trocar o servidor por um mais forte. Funciona até certo ponto e fica caro. Escalar <strong>horizontalmente</strong> é ligar vários servidores iguais. Isso só dá certo se o código for stateless: se o servidor guardar o carrinho de compras do usuário na própria memória, o próximo pedido pode cair em outra máquina e o carrinho some.</p>" +
+          '<p class="note">Solução comum: guardar a sessão em um lugar compartilhado, como um banco ou um cache, e deixar os servidores sem memória. É o fator VI do guia The Twelve-Factor App.</p>' },
+        { t: "Cache sem dor de cabeça", b: bullets(["<strong>Use para o que se repete:</strong> lista de produtos mais vendidos, página inicial, cotação do dia.", "<strong>Defina um prazo de validade (TTL):</strong> depois de alguns minutos, o cache expira e busca o dado novo.", "<strong>Cuidado com dado desatualizado:</strong> saldo bancário e estoque de última unidade não combinam com cache longo."]) },
+        { t: "Testes: a rede de proteção", b: "<p>Quanto maior o sistema, mais medo dá de mexer nele. Testes automatizados verificam sozinhos se o que funcionava continua funcionando depois de cada mudança. Com eles, dá para refatorar (reorganizar o código sem mudar o que ele faz) com segurança.</p>" }
+      ],
+      glossary: [["Escalabilidade", "Atender mais usuários sem perder desempenho."], ["Cache", "Cópia rápida de respostas pedidas com frequência."], ["Stateless", "Servidor que não guarda dados do usuário na própria memória."], ["Fila", "Lista de tarefas para processar depois, em ordem."], ["DRY", "Don’t Repeat Yourself: não repita lógica pelo código."], ["Refatoração", "Reorganizar o código sem mudar o que ele faz."], ["Débito técnico", "Atalhos de hoje que viram trabalho extra amanhã."], ["Camada", "Parte do sistema com uma função bem definida."]],
+      quiz: [
+        { q: "Uma classe que valida dados, grava no banco e envia e-mail fere qual princípio?", o: ["Responsabilidade única", "Cache", "Stateless"], c: 0, e: "Ela tem três motivos para mudar. O ideal é separar cada tarefa em uma classe com um papel só." },
+        { q: "Para que serve o cache?", o: ["Apagar dados antigos do banco", "Guardar respostas pedidas com frequência", "Criptografar senhas"], c: 1, e: "Ele evita repetir o mesmo trabalho toda hora, como o café já pronto na garrafa." },
+        { q: "Por que um servidor stateless ajuda o sistema a crescer?", o: ["Porque deixa o código menor", "Porque dispensa o banco de dados", "Porque permite ligar vários servidores iguais lado a lado"], c: 2, e: "Se nenhum servidor guarda dados do usuário, qualquer um deles pode atender qualquer pedido." }
+      ],
+      sources: [
+        ["The Twelve-Factor App (em português)", "https://12factor.net/pt_br/"],
+        ["AWS Well-Architected Framework: pilar de eficiência de desempenho", "https://aws.amazon.com/architecture/well-architected/"],
+        ["MARTIN, Robert C. Arquitetura Limpa. Alta Books, 2019.", ""],
+        ["FOWLER, Martin. Refatoração. 2. ed. Novatec, 2020.", ""]
+      ]
+    },
+
+    lgpd: {
+      name: "Proteção de dados", short: "LGPD", next: "sobre",
+      title: "LGPD: seus dados, suas regras",
+      hook: "Imagine que você faz um cadastro numa loja para ganhar desconto: nome, CPF, telefone e e-mail. Uma semana depois, começam ligações e mensagens de empresas que você nunca viu.",
+      say: {
+        abertura: "Só fiz um cadastro... e agora todo mundo me liga!",
+        problema: "Será que alguém vendeu meus dados?",
+        solucao: "Existe uma lei só para isso? Que bom!",
+        conclusao: "Agora sei proteger meus dados. Muito obrigado!",
+        extra: "Olha o passo a passo para pedir seus direitos!",
+        desafio: "Bora testar o que você aprendeu?"
+      },
+      problem: {
+        text: "Todos os dias informamos dados em lojas, apps e sites sem saber como são usados. Vazamentos e compartilhamentos indevidos expõem as pessoas a golpes e fraudes.",
+        widget: '<div class="panel"><div class="panel-head"><span>Privacidade</span><span class="danger">Em risco</span></div>' + hp(1) + '<p class="caption">Nome, CPF, telefone e e-mail circulando sem controle</p></div>',
+        question: "Quem controla as suas informações?"
+      },
+      solA: {
+        title: "A lei que te protege",
+        body: "<p>A LGPD (Lei nº 13.709/2018) define como empresas e órgãos públicos podem coletar, usar e guardar seus dados. Quem fiscaliza é a ANPD, a Agência Nacional de Proteção de Dados.</p>" +
+          '<div class="split"><div><span class="who">Dado pessoal</span><span class="what">Identifica você</span><span class="ex">nome, CPF, e-mail, telefone, endereço, IP</span></div><div><span class="who">Dado sensível</span><span class="what">Proteção extra</span><span class="ex">saúde, religião, opinião política, origem racial, biometria, orientação sexual</span></div></div>'
+      },
+      solB: {
+        title: "Seus direitos",
+        body: checks(["Saber quais dados a empresa tem sobre você", "Corrigir dados errados ou desatualizados", "Pedir a exclusão dos dados", "Retirar o consentimento que você deu", "Saber com quem seus dados foram compartilhados"]) +
+          '<div class="alert"><span class="t">Penalidade</span><span>Empresas que descumprem a lei podem ser multadas em até 2% do faturamento, limitado a R$ 50 milhões por infração.</span></div>'
+      },
+      conclusion: { text: "Proteger dados é dever das empresas e direito de todos. Antes de aceitar termos de uso, veja quais dados estão sendo pedidos.", seals: ["Informação", "Controle", "Privacidade"] },
+      extra: [
+        { t: "Como pedir seus direitos, na prática", b: '<ol class="steps">' +
+          "<li><span><strong>Peça primeiro à empresa.</strong> Procure na política de privacidade o canal do encarregado de dados (também chamado de DPO) e faça o pedido por escrito.</span></li>" +
+          "<li><span><strong>Guarde as provas.</strong> Número de protocolo, prints, e-mails e respostas recebidas.</span></li>" +
+          "<li><span><strong>Sem solução? Vá à ANPD.</strong> Envie uma petição pelo serviço “Abrir requerimento relacionado à LGPD” no gov.br, anexando as provas.</span></li>" +
+          "</ol>" +
+          '<p class="note">A ANPD só aceita pedidos que já foram feitos antes à empresa e não foram atendidos. As petições ajudam a agência a decidir o que fiscalizar.</p>' },
+        { t: "Linha do tempo", b: '<ol class="timeline">' +
+          '<li><span class="when">Ago 2018</span><span>A LGPD é sancionada.</span></li>' +
+          '<li><span class="when">Set 2020</span><span>A lei entra em vigor.</span></li>' +
+          '<li><span class="when">Ago 2021</span><span>As multas e outras sanções passam a valer.</span></li>' +
+          '<li><span class="when">Fev 2026</span><span>A Lei nº 15.352/2026 transforma a ANPD em agência reguladora: Agência Nacional de Proteção de Dados, com a mesma sigla.</span></li>' +
+          "</ol>" },
+        { t: "O consentimento não é o único caminho", b: "<p>Muita gente acha que a empresa sempre precisa da sua autorização. Na verdade, a lei prevê dez situações (as bases legais, no artigo 7º) em que o uso dos dados é permitido. Alguns exemplos:</p>" +
+          bullets(["<strong>Consentimento:</strong> você autoriza, de forma livre e clara.", "<strong>Contrato:</strong> a loja precisa do seu endereço para entregar a compra.", "<strong>Obrigação legal:</strong> a empresa precisa guardar notas fiscais por lei.", "<strong>Legítimo interesse:</strong> uso esperado e proporcional, que não pode ferir seus direitos."]) +
+          '<p class="note">Em todos os casos, a empresa deve usar só o necessário e para a finalidade informada.</p>' },
+        { t: "Crianças e adolescentes", b: "<p>Dados de crianças e adolescentes devem ser tratados sempre no melhor interesse deles. No caso de crianças, a lei exige o consentimento específico de pelo menos um dos pais ou do responsável legal. Desde março de 2026, o ECA Digital (Lei nº 15.211/2025) reforça essa proteção em sites, apps e jogos.</p>" },
+        { t: "E se os dados vazarem?", b: "<p>Quando um vazamento pode causar risco ou dano relevante às pessoas, a empresa precisa avisar a ANPD e os titulares afetados. Pelo regulamento da ANPD (Resolução CD/ANPD nº 15/2024), o prazo é de 3 dias úteis.</p>" },
+        { t: "Para quem desenvolve sistemas", b: bullets(["<strong>Privacidade desde a concepção:</strong> pense na proteção dos dados antes de escrever a primeira linha, não depois.", "<strong>Colete só o necessário:</strong> se o sistema não usa a data de nascimento, não peça.", "<strong>Criptografe dados sensíveis</strong> e controle quem acessa o quê.", "<strong>Anonimize quando der:</strong> dado anonimizado não identifica mais ninguém e deixa de ser dado pessoal."]) }
+      ],
+      glossary: [["Titular", "A pessoa a quem os dados se referem: você."], ["Controlador", "Quem decide o que fazer com os dados, como a loja."], ["Operador", "Quem trata os dados em nome do controlador."], ["Encarregado (DPO)", "O canal entre a empresa, os titulares e a ANPD."], ["Tratamento", "Qualquer uso de dados: coletar, guardar, compartilhar, apagar."], ["Anonimização", "Retirar o que permite identificar a pessoa."], ["Consentimento", "Autorização livre, informada e para um fim específico."], ["ANPD", "Agência Nacional de Proteção de Dados, que fiscaliza a LGPD."]],
+      quiz: [
+        { q: "Qual destes é um dado sensível?", o: ["E-mail", "Biometria", "Endereço"], c: 1, e: "Biometria está na lista de dados sensíveis, junto com saúde, religião e opinião política. E-mail e endereço são dados pessoais comuns." },
+        { q: "Você quer que uma empresa apague seus dados. Qual é o primeiro passo?", o: ["Fazer o pedido à própria empresa, pelos canais oficiais", "Ir direto à ANPD", "Não há nada a fazer"], c: 0, e: "A ANPD só aceita a petição se o pedido já foi feito à empresa e não foi atendido. Guarde o protocolo." },
+        { q: "Qual é a multa máxima por infração à LGPD?", o: ["R$ 50 mil", "2% do faturamento, limitada a R$ 50 milhões", "Não existe multa"], c: 1, e: "A multa simples é de até 2% do faturamento da empresa no Brasil, com teto de R$ 50 milhões por infração." }
+      ],
+      sources: [
+        ["Lei nº 13.709/2018 (LGPD), Planalto", "https://www.planalto.gov.br/ccivil_03/_ato2015-2018/2018/lei/l13709.htm"],
+        ["ANPD: fluxo da petição do titular", "https://www.gov.br/anpd/pt-br/fluxo-da-peticao-do-titular"],
+        ["gov.br: Abrir requerimento relacionado à LGPD", "https://www.gov.br/pt-br/servicos/abrir-requerimento-relacionado-a-lgpd"],
+        ["Câmara: entra em vigor lei que cria a Agência Nacional de Proteção de Dados", "https://www.camara.leg.br/noticias/1248401-entra-em-vigor-lei-que-cria-a-agencia-nacional-de-protecao-de-dados/"],
+        ["Resolução CD/ANPD nº 15/2024 (comunicação de incidentes)", "https://www.legisweb.com.br/legislacao/?id=458235"]
+      ]
+    }
+  };
+
+  var PHASES = [
+    { id: "abertura", label: "Abertura", mood: "triste" },
+    { id: "problema", label: "Fase 1: o problema", mood: "triste" },
+    { id: "solucao", label: "Fase 2: a solução", mood: "feliz" },
+    { id: "conclusao", label: "Fase 3: missão cumprida", mood: "muito" },
+    { id: "extra", label: "Fase extra", mood: "muito" },
+    { id: "desafio", label: "Desafio", mood: "feliz" }
+  ];
+
+  function inlineFig(mood, text) {
+    return '<div class="inline-figure" aria-hidden="true"><img class="char" src="' + IMG[mood] + '" alt=""><div class="bubble-wrap"><div class="bubble">' + text + "</div></div></div>";
+  }
+
+  function renderWorld(key) {
+    var w = WORLDS[key];
+    var others = Object.keys(WORLDS).filter(function (k) { return k !== key && LINKS[k]; }).map(function (k) { return '<a class="btn btn-ghost" href="' + LINKS[k] + '" target="_blank" rel="noopener">' + WORLDS[k].title + '</a>'; }).join("");
+    var progress = PHASES.map(function (p) { return '<li><a href="#' + p.id + '" data-jump="' + p.id + '"><span class="dot" aria-hidden="true"></span>' + p.label + "</a></li>"; }).join("");
+    var quiz = w.quiz.map(function (q, i) {
+      return '<fieldset class="q" data-q="' + i + '"><legend><span class="qn">Pergunta ' + (i + 1) + " de " + w.quiz.length + "</span>" + q.q + '</legend><div class="opts">' +
+        q.o.map(function (o, j) { return '<button type="button" class="opt" data-q="' + i + '" data-o="' + j + '"><span>' + o + '</span><span class="mark"></span></button>'; }).join("") +
+        '</div><p class="feedback" aria-live="polite" hidden></p></fieldset>';
+    }).join("");
+    var sources = w.sources.map(function (s) { return "<li>" + (s[1] ? '<a href="' + s[1] + '" target="_blank" rel="noopener">' + s[0] + "</a>" : s[0]) + "</li>"; }).join("");
+    var gloss = w.glossary.map(function (g) { return "<div><dt>" + g[0] + "</dt><dd>" + g[1] + "</dd></div>"; }).join("");
+    var extra = w.extra.map(function (x) { return '<article class="extra-item"><h3>' + x.t + "</h3>" + x.b + "</article>"; }).join("");
+
+    return '<div class="world gutter"><div class="container">' +
+      '<aside class="stage" aria-label="Seu progresso">' +
+        '<span class="stage-world">' + w.name + "</span>" +
+        '<div class="stage-figure" aria-hidden="true"><div class="bubble" id="stage-bubble">' + w.say.abertura + '</div><div class="bubble-tail" style="width:100%"></div><img class="char" id="stage-char" src="' + IMG.triste + '" alt=""><div class="ground-line"></div></div>' +
+        '<p class="sr-only" id="stage-live" aria-live="polite"></p>' +
+        '<ol class="progress">' + progress + "</ol>" +
+      "</aside>" +
+      '<div class="content">' +
+        '<section class="phase" id="abertura" data-phase="abertura">' +
+          '<p class="phase-label">Abertura</p><h1 class="world-title">' + w.title + "</h1>" +
+          '<p class="hook-text">' + w.hook + "</p>" + inlineFig("triste", w.say.abertura) +
+        "</section>" +
+        '<section class="phase" id="problema" data-phase="problema" aria-labelledby="h-problema">' +
+          '<p class="phase-label">Fase 1: o problema</p><h2 id="h-problema">Problemática</h2>' +
+          '<p class="lead">' + w.problem.text + "</p>" + w.problem.widget +
+          '<div class="question-wrap"><span class="small">A pergunta</span><p class="question">' + w.problem.question + "</p></div>" +
+        "</section>" +
+        '<section class="phase" id="solucao" data-phase="solucao" aria-labelledby="h-solucao">' +
+          '<p class="phase-label">Fase 2: a solução</p><h2 id="h-solucao">' + w.solA.title + "</h2>" + w.solA.body + inlineFig("feliz", w.say.solucao) +
+          '<h2 style="margin-top:28px">' + w.solB.title + "</h2>" + w.solB.body +
+        "</section>" +
+        '<section class="phase" id="conclusao" data-phase="conclusao" aria-labelledby="h-conclusao">' +
+          '<p class="phase-label">Fase 3: missão cumprida</p><h2 id="h-conclusao">Conclusão</h2>' +
+          '<p class="lead">' + w.conclusion.text + "</p>" +
+          '<div class="seals">' + w.conclusion.seals.map(function (s) { return '<span style="color:var(--ink)"><span style="color:var(--accent)">' + CHECK + "</span>" + s + "</span>"; }).join("") + "</div>" +
+          inlineFig("muito", w.say.conclusao) +
+        "</section>" +
+        '<section class="phase" id="extra" data-phase="extra" aria-labelledby="h-extra">' +
+          '<p class="phase-label">Fase extra</p><h2 id="h-extra">Vá além do folder</h2>' +
+          '<div class="extra-list">' + extra + '<article class="extra-item"><h3>Glossário</h3><dl class="glossary">' + gloss + "</dl></article></div>" +
+        "</section>" +
+        '<section class="phase" id="desafio" data-phase="desafio" aria-labelledby="h-desafio">' +
+          '<p class="phase-label">Desafio</p><h2 id="h-desafio">Teste o que você aprendeu</h2>' +
+          '<div class="quiz" id="quiz">' + quiz + "</div>" +
+          '<div class="result" id="quiz-result" hidden><span class="score" id="quiz-score"></span><p id="quiz-msg"></p><button type="button" class="btn btn-ghost" id="quiz-reset">Tentar de novo</button></div>' +
+        "</section>" +
+        '<section class="phase" aria-labelledby="h-fontes"><h2 id="h-fontes" style="font-size:1.3rem">Fontes</h2><ol class="sources">' + sources + "</ol></section>" +
+        '<div class="next"><span class="label">' + (others ? 'Conheça os outros folders do projeto' : 'Continue') + '</span><div style="display:flex;flex-wrap:wrap;gap:12px">' + others + '<a class="btn" href="#sobre">Sobre o projeto</a></div></div>' +
+      "</div></div></div>";
+  }
+
+  var observer = null, current = null, worldKey = null, quizState = [];
+
+  function setPhase(id) {
+    if (!worldKey || id === current) return;
+    var idx = PHASES.findIndex(function (p) { return p.id === id; });
+    if (idx < 0) return;
+    var w = WORLDS[worldKey], phase = PHASES[idx];
+    var mood = phase.mood;
+    if (id === "desafio" && quizState.length === w.quiz.length && quizState.every(function (x) { return x !== undefined; })) mood = "muito";
+    var img = document.getElementById("stage-char"), bubble = document.getElementById("stage-bubble");
+    if (img && img.getAttribute("src") !== IMG[mood]) {
+      img.setAttribute("src", IMG[mood]);
+      img.classList.remove("hop"); void img.offsetWidth; img.classList.add("hop");
+    }
+    if (bubble) bubble.textContent = w.say[id];
+    document.querySelectorAll(".progress a").forEach(function (a, i) {
+      a.classList.toggle("current", i === idx);
+      a.classList.toggle("done", i < idx);
+      if (i === idx) a.setAttribute("aria-current", "step"); else a.removeAttribute("aria-current");
+    });
+    current = id;
+  }
+
+  function watchPhases() {
+    if (observer) observer.disconnect();
+    var sections = document.querySelectorAll("[data-phase]");
+    observer = new IntersectionObserver(function () {
+      var best = null, bestTop = -Infinity;
+      sections.forEach(function (s) {
+        var top = s.getBoundingClientRect().top;
+        if (top <= window.innerHeight * 0.45 && top > bestTop) { bestTop = top; best = s; }
+      });
+      setPhase(best ? best.getAttribute("data-phase") : "abertura");
+    }, { threshold: [0, 0.25, 0.5, 0.75, 1], rootMargin: "0px 0px -40% 0px" });
+    sections.forEach(function (s) { observer.observe(s); });
+  }
+
+  function onScroll() {
+    if (!worldKey) return;
+    var sections = document.querySelectorAll("[data-phase]"), best = null, bestTop = -Infinity;
+    sections.forEach(function (s) { var t = s.getBoundingClientRect().top; if (t <= window.innerHeight * 0.45 && t > bestTop) { bestTop = t; best = s; } });
+    setPhase(best ? best.getAttribute("data-phase") : "abertura");
+  }
+
+  function bindQuiz() {
+    var w = WORLDS[worldKey];
+    quizState = new Array(w.quiz.length);
+    document.querySelectorAll(".opt").forEach(function (btn) {
+      btn.addEventListener("click", function () {
+        var qi = +btn.getAttribute("data-q"), oi = +btn.getAttribute("data-o"), q = w.quiz[qi];
+        if (quizState[qi] !== undefined) return;
+        quizState[qi] = oi === q.c;
+        var fs = btn.closest(".q");
+        fs.querySelectorAll(".opt").forEach(function (b) {
+          var j = +b.getAttribute("data-o");
+          b.disabled = true;
+          if (j === q.c) { b.classList.add("right"); b.querySelector(".mark").textContent = "Correta"; }
+          else if (j === oi) { b.classList.add("wrong"); b.querySelector(".mark").textContent = "Sua resposta"; }
+        });
+        var fb = fs.querySelector(".feedback");
+        fb.innerHTML = "<strong>" + (oi === q.c ? "Acertou." : "Quase.") + "</strong> " + q.e;
+        fb.hidden = false;
+        if (quizState.every(function (x) { return x !== undefined; }) && quizState.length === w.quiz.length) finishQuiz();
+      });
+    });
+    document.getElementById("quiz-reset").addEventListener("click", function () {
+      mount(worldKey, true);
+      var d = document.getElementById("desafio");
+      if (d) d.scrollIntoView({ block: "start" });
+      var first = document.querySelector(".opt"); if (first) first.focus({ preventScroll: true });
+    });
+  }
+
+  function finishQuiz() {
+    var w = WORLDS[worldKey];
+    var hits = quizState.filter(Boolean).length, total = w.quiz.length;
+    var msg = hits === total ? "Missão cumprida com nota máxima. Obrigado por jogar este tema!" : hits >= 2 ? "Muito bom! Releia a fase extra para fechar o tema com nota máxima." : "Vale voltar às fases 1 e 2 e tentar de novo. Você consegue!";
+    document.getElementById("quiz-score").textContent = hits + " de " + total + " acertos";
+    document.getElementById("quiz-msg").textContent = msg;
+    var r = document.getElementById("quiz-result"); r.hidden = false;
+    var bubble = document.getElementById("stage-bubble");
+    w.say.desafio = hits === total ? "Gabaritou! Muito obrigado!" : "Valeu por jogar! Bora de novo?";
+    current = null; setPhase("desafio");
+    var live = document.getElementById("stage-live"); if (live) live.textContent = hits + " de " + total + " acertos.";
+  }
+
+  var SAY_DEFAULT = {};
+  Object.keys(WORLDS).forEach(function (k) { SAY_DEFAULT[k] = WORLDS[k].say.desafio; });
+
+  function mount(key, keepScroll) {
+    var view = document.getElementById("view-world");
+    WORLDS[key].say.desafio = SAY_DEFAULT[key];
+    worldKey = key; current = null;
+    view.innerHTML = renderWorld(key);
+    document.querySelectorAll(".progress a").forEach(function (a) {
+      a.addEventListener("click", function (e) {
+        e.preventDefault();
+        var t = document.getElementById(a.getAttribute("data-jump"));
+        if (t) t.scrollIntoView({ block: "start" });
+      });
+    });
+    bindQuiz();
+    setPhase("abertura");
+    watchPhases();
+  }
+
+  function route() {
+    var h = (location.hash || "").replace("#", "");
+    var root = document.documentElement;
+    root.setAttribute("data-world", SITE);
+    var about = h === "sobre";
+    document.getElementById("view-sobre").hidden = !about;
+    document.getElementById("view-world").hidden = about;
+    if (about) {
+      worldKey = null;
+      if (observer) observer.disconnect();
+      window.scrollTo(0, 0);
+    } else {
+      if (worldKey !== SITE) mount(SITE);
+      var t = h ? document.getElementById(h) : null;
+      if (t) t.scrollIntoView({ block: "start" }); else window.scrollTo(0, 0);
+    }
+    var navKey = about ? "sobre" : (h === "extra" || h === "desafio" ? h : "folder");
+    document.querySelectorAll(".nav a").forEach(function (a) {
+      if (a.getAttribute("data-route") === navKey) a.setAttribute("aria-current", "page"); else a.removeAttribute("aria-current");
+    });
+  }
+
+  window.addEventListener("hashchange", route);
+  window.addEventListener("scroll", function () { window.requestAnimationFrame(onScroll); }, { passive: true });
+  route();
+})();
+</script>
+
+</body>
+</html>
